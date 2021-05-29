@@ -62,7 +62,7 @@ class DataRecorder:
                
     @see The @c cProfile and @c resource modules
     """
-    
+
     def __init__(self, basename, path=os.curdir):
         """
         Construct a new DataRecorder that will write the gathered information
@@ -79,24 +79,24 @@ class DataRecorder:
                                @c .profile and @c .timing.
         @param     path        Create the output files in the directory
                                identified by this name string.
-        """ 
+        """
         # Fail early: immediately try to open files.
         timing_filename = self._available_filename(path, basename, "timing")
-        self.__timing_file = open( timing_filename, mode="wt" ) 
+        self.__timing_file = open( timing_filename, mode="wt" )
 
         # Actually, Profile expects a filename. By opening the file
         # here, we make sure it will be available when the profiling
         # is over.
         profile_filename = self._available_filename(path, basename, "profile")
         self.__profile_file = open( profile_filename, mode="w" )
-        
+
         self.__stop_time = None
         self.__stop_resources = None
 
         # Use milliseconds for all times to ease further processing
         self.__start_time = time.time()
         self.__start_resources = resource.getrusage( resource.RUSAGE_SELF )
-        
+
         self.__profile = cProfile.Profile()
         self.__profile.enable( builtins=False )
 
@@ -111,7 +111,7 @@ class DataRecorder:
         # There is no way to restart; stop() is the only method setting
         # this variable.
         return self.__stop_time is None
-    
+
 
     def stop(self):
         """
@@ -121,7 +121,7 @@ class DataRecorder:
         """
         if not self.is_running():
             return
-        
+
         # Stop profiling and resource monitoring.
         self.__profile.disable()
         self.__stop_time = time.time()
@@ -142,7 +142,7 @@ class DataRecorder:
         """
         if self.is_running():
             self.stop()
-        
+
         # Dump the call profile. And: yes, this is a race condition.
         self.__profile_file.close()
         self.__profile.dump_stats( self.__profile_file.name )
@@ -153,7 +153,7 @@ class DataRecorder:
         sys_time = self.__stop_resources.ru_stime - self.__start_resources.ru_stime
         cpu_time = user_time + sys_time
         max_rss = self.__stop_resources.ru_maxrss
-        
+
         with closing( self.__timing_file ) as timing_file:
             info = [ "node: {0}".format( platform.node() ),
                      "platform: {0}".format( platform.platform() ),
@@ -169,11 +169,11 @@ class DataRecorder:
                  ]
             for key, value in sorted( extra_information.items() ):
                 info.append( "{0}: {1}".format( key, value ) )
-            
+
             # Finally, dump the resource information
             print( "\n".join( info ), file=timing_file )
 
-        
+
     @staticmethod
     def _available_filename(path, basename, extension):
         """
@@ -183,7 +183,7 @@ class DataRecorder:
         filename = "{base}.{ext}".format( base = basename, ext = extension )
         if not os.path.exists( os.path.join(path, filename ) ):
             return os.path.join(path, filename )
-        
+
         # TODO: Find a better method to generate alternative file names.
         #       The limit 25 is completely arbitrary.
         for i in range(1, 26):
@@ -194,7 +194,7 @@ class DataRecorder:
                                  )
             if not os.path.exists( os.path.join(path, filename ) ):
                 return os.path.join(path, filename )
-            
+
         raise IOError( "suitable output filenames already taken" )
 
 
@@ -249,7 +249,7 @@ class ParallelParser:
     
     @see __iter__() for a detailed description which lines the parser yields.
     """
-    
+
     def __init__(self, file, separator=" "):
         """
         Construct a new ParallelParser for iterating over @p file.
@@ -268,7 +268,7 @@ class ParallelParser:
         """
         self.__separator = separator
         self.__file = open( file, "rt" )
-        
+
         directory = os.path.dirname( file )
         pipe_file = "{}.pipe".format( os.path.basename( file ) )
         self.__pipe = open( os.path.join( directory, pipe_file ), "at+" )
@@ -287,7 +287,7 @@ class ParallelParser:
         if remove_pipe:
             self.__pipe.close()
             os.remove( self.__pipe.name )
-        
+
 
     def __iter__(self):
         """
@@ -307,7 +307,7 @@ class ParallelParser:
         with self.__lock() as data:
             parsers, current_offset, current_line = data
             self.__update( parsers + 1, current_offset, current_line )
-        
+
         # Iterate until the file ends
         # readline() is just at test for EOF; file will be seek()ed anyway
         line = self.__file.readline()
@@ -322,20 +322,20 @@ class ParallelParser:
                 while line and (not line.strip() or line.strip().startswith( "#" )):
                     line = self.__file.readline()
                     current_line += 1
-            
+
             # File might have ended already
             if line:
                 self.__update( parsers, self.__file.tell(), current_line )
                 yield current_line, tuple( line.strip().split( self.__separator ) )
-        
+
         # Unregister: decrease the number of parsers
         with self.__lock() as data:
             parsers, current_offset, current_line = data
             self.__update( parsers - 1, current_offset, current_line )
 
         raise StopIteration
-    
-        
+
+
     @contextmanager
     def __lock(self):
         """
@@ -354,9 +354,9 @@ class ParallelParser:
             parsers, offset, line = map(int, self.__pipe.readline().split( " " ) )
         except ValueError:
             parsers, offset, line = 0, 0, 0
-        
+
         yield parsers, offset, line
-        
+
         self.__locked = previously_locked
         if not previously_locked:
             fcntl.lockf( self.__pipe, fcntl.LOCK_UN )
@@ -374,7 +374,7 @@ class ParallelParser:
             # Flush the update to disk to circumvent caching, which might delay
             # propagation of the update to other parsers.
             self.__pipe.flush()
-        
+
 
 import os
 import signal
@@ -422,7 +422,7 @@ class AlgorithmRunner:
     
     @see ParallelParser and DataRecorder
     """
-    
+
     def __init__(self, algorithm, arguments=sys.argv[1:], algorithm_version="<unknown>" ):
         """
         Construct a new AlgorithmRunner for executing the given @p algorithm.
@@ -445,7 +445,7 @@ class AlgorithmRunner:
         self.__algorithm = algorithm
         self.__algorithm_version = algorithm_version
         options, arguments = self._parse_arguments( arguments, algorithm_version )
-        
+
         # __input is a list of pairs (<name>, <iterable>);
         # <iterable> is expected to return pairs (<item_number>, <item>).
         # See run().
@@ -456,14 +456,14 @@ class AlgorithmRunner:
         if options.input_file:
             input_parser = ParallelParser( options.input_file )
             self.__input.append( ( options.input_file, input_parser ) )
-        
+
         # Initialize the remaining attributes.
         self._open_output( options.output_file )
 
         self.__create_profile = options.create_profile
         self.__profile_directory = options.profile_directory
         self.__timelimit = options.timelimit
-        
+
         if self.__create_profile:
             self._ensure_directory( options.profile_directory )
 
@@ -474,11 +474,11 @@ class AlgorithmRunner:
         """
         if not self.__input:
             self.__parser.print_usage()
-        
+
         # Listen for signals to allow the user to interrupt the execution.
         signal.signal( signal.SIGUSR1, self._raise_signal )
-        
-        terminated = False    
+
+        terminated = False
         for name, iterable in self.__input:
             for item_number, item in iterable:
                 try:
@@ -486,23 +486,23 @@ class AlgorithmRunner:
                     if self.__timelimit > 0:
                         signal.signal( signal.SIGALRM, self._raise_signal )
                         signal.alarm( self.__timelimit )
-                        
+
                     if self.__create_profile:
                         dump_filename = self._generate_dump_name( *item )
                         recorder = DataRecorder(
                                         dump_filename,
                                         self.__profile_directory,
-                                        
+
                                     )
                     try:
                         result = self.__algorithm( *item, output=self.__output)
-                    
+
                     except TimeOutException:
                         terminated = "timeout after {0}s".format( self.__timelimit )
-                    
+
                     except SoftKillException:
                         terminated = "killed by user signal"
-                    
+
                     if self.__create_profile:
                         recorder.stop()
                         extra_information = {
@@ -517,7 +517,7 @@ class AlgorithmRunner:
                             extra_information["result"] = result
 
                         recorder.dump_data( extra_information )
-    
+
                 except TypeError:
                     message = ">>> Algorithm input in '{name}':{i} has the " \
                               "wrong type. Ignoring it."
@@ -529,12 +529,12 @@ class AlgorithmRunner:
                           )
                 except IOError:
                     pass # output failure
-                
+
                 if terminated:
                     message = ">>> Terminated prematurely. Reason: {0}"
-                    print( message.format( terminated ), file=sys.stderr ) 
+                    print( message.format( terminated ), file=sys.stderr )
                     return 1
-        
+
         # Stop listening for signals.
         signal.signal( signal.SIGUSR1, signal.SIG_DFL )
         signal.signal( signal.SIGALRM, 0 )
@@ -546,7 +546,7 @@ class AlgorithmRunner:
         """
         if not os.path.exists( path ):
             os.makedirs( path )
-            
+
         elif not os.path.isdir( path ):
             message = "file already exists and is not a path: '{0}'"
             raise IOError( message.format( path ) )
@@ -559,13 +559,13 @@ class AlgorithmRunner:
         """
         if filename and os.path.exists( filename ):
             raise IOError( "output file already exists" )
-        
+
         if filename:
             self.__output = open( filename, mode="wt" )
         else:
             self.__output = default
 
-    
+
     def _generate_dump_name(self, *input_item):
         """
         Return a generic file name for profiling information.
@@ -583,9 +583,9 @@ class AlgorithmRunner:
         """
         usage_string = """%prog <algorithm input>"""
         version_string ="""%prog {0}""".format( algorithm_version )
-        
+
         parser = OptionParser( usage = usage_string, version = version_string )
-        
+
         parser.add_option( "-t",
                            "--timelimit",
                            dest="timelimit",
@@ -602,7 +602,7 @@ class AlgorithmRunner:
                              type="string",
                              default=None,
                              help="read input line by line from FILE")
-        
+
         io_group.add_option( "-o", "--output-file", metavar="FILE",
                              dest="output_file",
                              type="string",
@@ -612,26 +612,26 @@ class AlgorithmRunner:
         # TODO: Add overwrite option.
         parser.add_option_group( io_group )
 
-        
+
         profiling_group = OptionGroup(parser, "Profiling")
         profiling_group.add_option( "-p", "--create-profile",
                            action="store_true", dest="create_profile",
                            default=False,
                            help="create a profile for each algorithm run"
                            )
-        
+
         profiling_group.add_option( "-d", "--profile-directory", metavar="DIR",
                            dest="profile_directory",
                            type="string",
                            default=os.getcwd(),
                            help="store profiles in directory DIR")
-        
+
         parser.add_option_group( profiling_group )
-        
+
         self.__parser = parser
         return parser.parse_args( arguments )
-    
-    
+
+
     def _raise_signal( self, signum, frame ):
         """
         Asynchronous signal handler that raises the respective exceptions.
@@ -657,4 +657,3 @@ class SoftKillException( Exception ):
     to terminate.
     """
     pass
-    

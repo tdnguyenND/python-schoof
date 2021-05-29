@@ -30,6 +30,8 @@ alleviates the issue.
 @package   support.profiling
 @author    Peter Dinges <pdinges@acm.org>
 """
+import sys
+
 
 def profiling_name(name):
     """
@@ -151,24 +153,44 @@ def rename_function( function, name, filename=None, firstlineno=-1 ):
         filename = code.co_filename
     if firstlineno == -1:
         firstlineno = code.co_firstlineno
-    
-    renamed_code = types.CodeType(
-                      code.co_argcount,
-                      code.co_kwonlyargcount,
-                      code.co_nlocals,
-                      code.co_stacksize,
-                      code.co_flags,
-                      code.co_code,
-                      code.co_consts,
-                      code.co_names,
-                      code.co_varnames,
-                      str( filename ),
-                      str( name ),
-                      int( firstlineno ),
-                      code.co_lnotab,
-                      code.co_freevars,
-                      code.co_cellvars
-                  )
+
+    if sys.version_info >= (3, 8):
+        renamed_code = types.CodeType(
+                          code.co_argcount,
+                          code.co_posonlyargcount,
+                          code.co_kwonlyargcount,
+                          code.co_nlocals,
+                          code.co_stacksize,
+                          code.co_flags,
+                          code.co_code,
+                          code.co_consts,
+                          code.co_names,
+                          code.co_varnames,
+                          str( filename ),
+                          str( name ),
+                          int( firstlineno ),
+                          code.co_lnotab,
+                          code.co_freevars,
+                          code.co_cellvars
+                      )
+    else:
+        renamed_code = types.CodeType(
+                          code.co_argcount,
+                          code.co_kwonlyargcount,
+                          code.co_nlocals,
+                          code.co_stacksize,
+                          code.co_flags,
+                          code.co_code,
+                          code.co_consts,
+                          code.co_names,
+                          code.co_varnames,
+                          str( filename ),
+                          str( name ),
+                          int( firstlineno ),
+                          code.co_lnotab,
+                          code.co_freevars,
+                          code.co_cellvars
+                      )
 
     function.__name__ = str( name )
     function.__code__ = renamed_code
@@ -261,23 +283,44 @@ def __copy_function( function ):
         function = function.__func__
 
     code = function.__code__
-    code_copy = types.CodeType(
-                      code.co_argcount,
-                      code.co_kwonlyargcount,
-                      code.co_nlocals,
-                      code.co_stacksize,
-                      code.co_flags,
-                      code.co_code,
-                      code.co_consts,
-                      code.co_names,
-                      code.co_varnames,
-                      code.co_filename,
-                      code.co_name,
-                      code.co_firstlineno,
-                      code.co_lnotab,
-                      code.co_freevars,
-                      code.co_cellvars
-                  )
+
+    if sys.version_info >= (3, 8):
+        code_copy = types.CodeType(
+                          code.co_argcount,
+                          code.co_posonlyargcount,
+                          code.co_kwonlyargcount,
+                          code.co_nlocals,
+                          code.co_stacksize,
+                          code.co_flags,
+                          code.co_code,
+                          code.co_consts,
+                          code.co_names,
+                          code.co_varnames,
+                          code.co_filename,
+                          code.co_name,
+                          code.co_firstlineno,
+                          code.co_lnotab,
+                          code.co_freevars,
+                          code.co_cellvars
+                      )
+    else:
+        code_copy = types.CodeType(
+                          code.co_argcount,
+                          code.co_kwonlyargcount,
+                          code.co_nlocals,
+                          code.co_stacksize,
+                          code.co_flags,
+                          code.co_code,
+                          code.co_consts,
+                          code.co_names,
+                          code.co_varnames,
+                          code.co_filename,
+                          code.co_name,
+                          code.co_firstlineno,
+                          code.co_lnotab,
+                          code.co_freevars,
+                          code.co_cellvars
+                      )
     
     function_copy = types.FunctionType(
                           code_copy,
